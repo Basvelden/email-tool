@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Analyse Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    h1 { color: #333; }
+    textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    button { margin-top: 16px; width: 100%; padding: 14px; background: #1a1a1a; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #333; }
+    .resultaat { margin-top: 32px; display: none; }
+    .blok { background: #f5f5f5; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; }
+    .blok-titel { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-bottom: 6px; }
+    .blok-inhoud { font-size: 1rem; color: #222; line-height: 1.6; }
+    .urgentie-hoog { border-left: 4px solid #e53e3e; }
+    .urgentie-normaal { border-left: 4px solid #d69e2e; }
+    .urgentie-laag { border-left: 4px solid #38a169; }
+  </style>
+</head>
+<body>
+  <h1>Email Analyse Tool</h1>
+  <p style="color:#666">Plak een klant e-mail hieronder en krijg automatisch een categorie, urgentie en concept-antwoord.</p>
+
+  <textarea id="email-input" rows="10" placeholder="Plak hier de e-mail van de klant..."></textarea>
+
+  <button id="analyseer-knop">Analyseer e-mail</button>
+
+  <div class="resultaat" id="resultaat">
+    <div class="blok" id="blok-categorie">
+      <div class="blok-titel">Categorie</div>
+      <div class="blok-inhoud" id="categorie"></div>
+    </div>
+    <div class="blok" id="blok-urgentie">
+      <div class="blok-titel">Urgentie</div>
+      <div class="blok-inhoud" id="urgentie"></div>
+    </div>
+    <div class="blok">
+      <div class="blok-titel">Samenvatting</div>
+      <div class="blok-inhoud" id="samenvatting"></div>
+    </div>
+    <div class="blok">
+      <div class="blok-titel">Concept-antwoord</div>
+      <div class="blok-inhoud" id="antwoord"></div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('analyseer-knop').addEventListener('click', async function() {
+      const email = document.getElementById('email-input').value;
+
+      if (!email) {
+        alert('Plak eerst een e-mail in het tekstveld.');
+        return;
+      }
+
+      document.getElementById('resultaat').style.display = 'none';
+      document.getElementById('analyseer-knop').textContent = 'Bezig...';
+
+      const response = await fetch('/analyseer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+      const tekst = data.content[0].text;
+
+      const categorie = tekst.match(/CATEGORIE:\s*(.+)/)?.[1]?.trim() || '';
+      const urgentie = tekst.match(/URGENTIE:\s*(.+)/)?.[1]?.trim() || '';
+      const samenvatting = tekst.match(/SAMENVATTING:\s*(.+)/)?.[1]?.trim() || '';
+      const antwoord = tekst.match(/CONCEPT-ANTWOORD:\s*([\s\S]+)/)?.[1]?.trim() || '';
+
+      document.getElementById('categorie').textContent = categorie;
+      document.getElementById('urgentie').textContent = urgentie;
+      document.getElementById('samenvatting').textContent = samenvatting;
+      document.getElementById('antwoord').innerHTML = antwoord.replace(/\n/g, '<br>');
+
+      const urgentieBlok = document.getElementById('blok-urgentie');
+      urgentieBlok.className = 'blok';
+      if (urgentie.toLowerCase() === 'hoog') urgentieBlok.classList.add('urgentie-hoog');
+      if (urgentie.toLowerCase() === 'normaal') urgentieBlok.classList.add('urgentie-normaal');
+      if (urgentie.toLowerCase() === 'laag') urgentieBlok.classList.add('urgentie-laag');
+
+      document.getElementById('resultaat').style.display = 'block';
+      document.getElementById('analyseer-knop').textContent = 'Analyseer e-mail';
+    });
+  </script>
+</body>
+</html>
